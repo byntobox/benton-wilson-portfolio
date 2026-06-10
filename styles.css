@@ -318,7 +318,7 @@ a {
 .hero-visual {
   position: relative;
   display: grid;
-  overflow: hidden;
+  overflow: visible;
   min-height: 460px;
   place-items: center;
 }
@@ -446,8 +446,8 @@ a {
 }
 
 .orbit-one {
-  width: 490px;
-  height: 490px;
+  width: min(490px, calc(100vw - 48px));
+  aspect-ratio: 1;
   animation: spin 22s linear infinite;
 }
 
@@ -457,8 +457,9 @@ a {
 }
 
 .orbit-two {
-  width: 600px;
-  height: 320px;
+  width: min(600px, calc(100vw - 96px));
+  height: auto;
+  aspect-ratio: 15 / 8;
   transform: rotate(-18deg);
   animation: pulse 5s ease-in-out infinite;
 }
@@ -1189,7 +1190,7 @@ a {
   }
 
   .orbit-two {
-    width: 100%;
+    width: min(100%, calc(100vw - 96px));
   }
 
   .section-heading,
@@ -1284,8 +1285,7 @@ a {
   }
 
   .orbit-one {
-    width: 360px;
-    height: 360px;
+    width: min(360px, calc(100vw - 48px));
   }
 
   .section-heading {
