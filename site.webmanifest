@@ -1,0 +1,17 @@
+{
+  "name": "Benton Wilson | Data Engineer & Systems Analyst",
+  "short_name": "Benton Wilson",
+  "description": "Professional portfolio for Benton Wilson, a data engineer and systems analyst.",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f4f1e9",
+  "theme_color": "#07111f",
+  "icons": [
+    {
+      "src": "assets/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
