@@ -1,6 +1,13 @@
 # Publishing Checklist
 
-Before publishing the site on its permanent domain:
+Production domain: `https://bentonjwilson.info/`.
+
+The November 2026 revision includes canonical URLs, absolute social-image URLs,
+`og:url`, and a three-page sitemap referenced from `robots.txt`. The corrected
+résumé and current profile photo from the remote `main` branch are preserved.
+The remaining checks below apply to future domain changes or hosting reviews.
+
+When changing the permanent domain:
 
 1. Add a canonical URL to `index.html`.
 2. Change `og:image`, `twitter:image`, and the structured-data image to absolute HTTPS URLs.

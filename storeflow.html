@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="A Python, PostgreSQL, and Streamlit retail reconciliation pipeline: architecture, validation, sample results, and known limitations." />
+  <meta name="theme-color" content="#07111f" />
+  <link rel="canonical" href="https://bentonjwilson.info/storeflow.html" />
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://bentonjwilson.info/storeflow.html" />
+  <meta property="og:title" content="StoreFlow case study | Benton J. Wilson" />
+  <meta property="og:description" content="Retail sales reconciliation: architecture, sample results, validation behavior, and known limitations." />
+  <meta property="og:image" content="https://bentonjwilson.info/assets/storeflow-dashboard-overview.png" />
+  <meta property="og:image:alt" content="StoreFlow dashboard displaying generated sample sales and validation exceptions" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <title>StoreFlow case study | Benton J. Wilson</title>
+  <link rel="icon" href="assets/favicon.svg?v=2" type="image/svg+xml" />
+  <link rel="stylesheet" href="styles.css?v=20261117" />
+  <script src="script.js?v=20261117" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  <header class="site-header">
+    <div class="header-inner section-shell">
+      <a class="brand" href="index.html#main-content"><img src="assets/benton-wilson-profile.jpg" alt="" width="40" height="40" /><span>Benton J. Wilson</span></a>
+      <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="primary-nav" hidden>Menu <span aria-hidden="true">☰</span></button>
+      <nav id="primary-nav" class="primary-nav" aria-label="Primary navigation">
+        <a href="index.html#work">Projects</a><a href="index.html#experience">Experience</a><a href="index.html#credentials">Credentials</a><a href="index.html#contact">Contact</a>
+        <a class="nav-resume" href="assets/Benton-Wilson-Resume-2026-clean.pdf">View résumé <span class="file-type">PDF</span></a>
+      </nav>
+    </div>
+  </header>
+  <main id="main-content" tabindex="-1">
+    <section class="case-hero dark-surface"><div class="section-shell">
+      <p class="breadcrumb"><a href="index.html#work">← Selected Work</a></p>
+<p class="eyebrow">Personal project / Data engineering</p>
+      <h1>StoreFlow</h1>
+      <p class="case-lead">Retail sales reconciliation with a record of what arrived, what loaded, and what needs investigation.</p>
+      <div class="case-meta"><span>Python · PostgreSQL · pandas · Streamlit</span><span>Generated sample data</span></div>
+      <div class="actions"><a class="button button-primary" href="https://github.com/byntobox/storeflow-retail-reconciliation">View source code ↗</a><a class="button button-outline" href="#dashboard">Inspect dashboard</a></div>
+    </div></section>
+    <div class="case-layout section-shell">
+      <nav class="case-nav" aria-label="On this page"><strong>On this page</strong><a href="#context">Context &amp; contribution</a><a href="#architecture">Architecture &amp; decisions</a><a href="#validation">Validation &amp; exceptions</a><a href="#dashboard">Dashboard &amp; results</a><a href="#limitations">Limitations &amp; sources</a></nav>
+      <div class="case-body">
+<section id="context" tabindex="-1">
+          <h2>The problem</h2>
+          <p>A sales dashboard is only useful if its underlying records can be explained. Store files may contain duplicates, unknown stores or products, malformed dates, and inconsistent amounts. A load that finishes successfully can still leave data-quality issues unresolved.</p>
+          <h3>My contribution</h3>
+          <p>I built this portfolio project to demonstrate the complete path from CSV ingestion to reporting: a relational schema, Python loading and transformation scripts, row-level rejection records, eight summary checks, pipeline run logging, and a Streamlit dashboard.</p>
+          <p>The scenario uses generated sales from six fictional stores. It draws on the kinds of file and integration problems found in retail operations without using employer data.</p>
+        </section>
+        <section id="architecture" tabindex="-1">
+          <h2>Approach &amp; architecture</h2>
+          <ol class="architecture" aria-label="Pipeline stages"><li><strong>1. Ingest</strong><span>CSV files → raw staging, with file and row provenance</span></li><li><strong>2. Transform</strong><span>Reference checks → typed facts or row-level rejects</span></li><li><strong>3. Inspect</strong><span>Summary checks + run logs → Streamlit dashboard</span></li></ol>
+          <p>PostgreSQL separates store, product, and department dimensions from <code>stg_sales_raw</code>, <code>fact_sales</code>, <code>rejected_sales_rows</code>, <code>validation_results</code>, and <code>pipeline_run_log</code>.</p>
+          <h3>Decisions and tradeoffs</h3>
+          <ul><li><strong>Keep raw values as text.</strong> Malformed inputs can reach staging for inspection before conversion to dates, integers, and decimal amounts.</li><li><strong>Separate rejected rows from accepted facts.</strong> Source file, source row number, run ID, and a rejection reason make problems traceable without putting those rows into reporting.</li><li><strong>Use database uniqueness for duplicates.</strong> A transaction-line key with <code>ON CONFLICT DO NOTHING</code> prevents repeat fact inserts. Skipped duplicates are counted separately from row-level validation rejects.</li><li><strong>Use explicit batch steps.</strong> Python orchestrates ingestion, transformation, and validation. This keeps the project approachable, but it does not yet provide a production scheduler, retry policy, or complete transaction rollback across all steps.</li></ul>
+        </section>
+        <section id="validation" tabindex="-1">
+          <h2>What the validation exceptions mean</h2>
+          <p>The generator deliberately injects duplicate lines, invalid stores, unknown products, incorrect amounts, negative quantities, and malformed dates. Transformation rejects invalid records; the database skips duplicate fact rows. Eight separate summary checks inspect the run.</p>
+          <div class="callout"><strong>“5 failed” is a data-quality result, not a test-suite result.</strong><p>Four failed checks identify injected input issues. The fifth is a raw-to-final total mismatch: the current staging-total calculation includes otherwise valid duplicates, while the fact table retains one copy. This is a reconciliation limitation that still needs correction.</p></div>
+          <div class="table-scroll"><table><caption>Checks in the documented sample run</caption><thead><tr><th scope="col">Check</th><th scope="col">Result</th><th scope="col">Interpretation</th></tr></thead><tbody>
+            <tr><th scope="row">Staged rows exist</th><td>Passed</td><td>Input records reached staging.</td></tr>
+            <tr><th scope="row">Required fields populated</th><td>Passed</td><td>Required values were present; this alone does not establish validity.</td></tr>
+            <tr><th scope="row">Duplicate transaction lines</th><td>Failed</td><td>Injected duplicate lines remain visible in staging.</td></tr>
+            <tr><th scope="row">Active store numbers</th><td>Failed</td><td>Some staged rows reference an invalid store.</td></tr>
+            <tr><th scope="row">Active product IDs</th><td>Failed</td><td>Some staged rows reference an unknown product.</td></tr>
+            <tr><th scope="row">Sales amount calculation</th><td>Failed</td><td>Some inputs do not match quantity × unit price.</td></tr>
+            <tr><th scope="row">Raw-to-final sales total</th><td>Failed</td><td>The staging-total calculation does not deduplicate eligible rows before comparing totals.</td></tr>
+            <tr><th scope="row">Active store/day completeness</th><td>Passed</td><td>Every active store is represented for each date present in staging.</td></tr>
+          </tbody></table></div>
+          <h3>Error handling</h3>
+          <p>Row validation raises descriptive errors for missing fields, invalid references, conversion failures, negative values, and amount mismatches. These are saved with source provenance. Pipeline-level exceptions are caught and an attempt is made to record failure in the run log.</p>
+          <p>Run completion and data quality are distinct: the current pipeline does not derive its final run status from the summary check results. A completed run can still require investigation.</p>
+        </section>
+        <section id="dashboard" tabindex="-1">
+          <h2>Dashboard &amp; sample results</h2>
+          <p>The dashboard provides business performance, data quality, and record explorer views. Accepted records can be traced to their source file and pipeline run.</p>
+          <figure class="case-figure"><a href="assets/storeflow-dashboard-overview.png" aria-label="Open StoreFlow dashboard screenshot at full size"><img src="assets/storeflow-dashboard-overview.png" alt="StoreFlow sample run showing 16,427 staged rows, 16,229 loaded rows, 198 excluded rows, and five failed validation checks out of eight." width="1550" height="1152" loading="lazy" /></a><figcaption>Generated sample data, not production business impact. <a href="assets/storeflow-dashboard-overview.png">Open the full-size screenshot</a> for readable dashboard labels.</figcaption></figure>
+          <p>The documented 30-day, six-store run processes <strong>180 files</strong> and stages <strong>16,427 rows</strong>. It loads <strong>16,229</strong>, records <strong>165 row-level rejects</strong>, and skips <strong>33 duplicates</strong>: <strong>198 excluded rows</strong> in total. The displayed acceptance rate is <strong>98.8%</strong>.</p>
+          <p>These results demonstrate ingestion, traceability, and exception visibility. They do not establish production scale, business savings, or that every validation rule passes.</p>
+        </section>
+        <section id="limitations" tabindex="-1">
+          <h2>Limitations &amp; supporting evidence</h2>
+          <ul><li>Reconciliation needs the same acceptance and deduplication rules as the fact load. Reprocessing an existing batch also needs clearer per-run accounting.</li><li>Completeness is checked only for dates present in staging. A date missing from every store’s input is outside that check’s current scope.</li><li>The published schema is missing the definition of <code>validation_results</code> even though it creates indexes on that table. A fresh database setup needs that definition before the full application can run.</li><li>The repository’s test file is empty. There is no established automated regression suite or production reliability claim.</li><li>Public deployment, authentication, alerting, and automated archiving are future work. No live demo is linked.</li></ul>
+          <h3>Inspect the implementation</h3>
+          <ul><li><a href="https://github.com/byntobox/storeflow-retail-reconciliation/blob/main/README.md">README and documented sample run</a></li><li><a href="https://github.com/byntobox/storeflow-retail-reconciliation/blob/main/database/schema.sql">Database schema</a></li><li><a href="https://github.com/byntobox/storeflow-retail-reconciliation/blob/main/etl/generate_sample_sales_files.py">Sample generator and intentional bad records</a></li><li><a href="https://github.com/byntobox/storeflow-retail-reconciliation/blob/main/etl/transform_and_load.py">Transformation and rejection handling</a></li><li><a href="https://github.com/byntobox/storeflow-retail-reconciliation/blob/main/etl/validate_sales.py">Validation and reconciliation logic</a></li><li><a href="https://github.com/byntobox/storeflow-retail-reconciliation/blob/main/dashboard/app.py">Streamlit dashboard source</a></li></ul>
+        </section>
+        <div class="case-contact"><h2>Discuss this work</h2><p><a href="mailto:benton.y.wilson@gmail.com">Email Benton</a> or <a href="index.html#work">return to selected work</a>.</p></div>
+      </div>
+    </div>
+  </main>
+  <footer class="site-footer section-shell"><p>© <span id="year">2026</span> Benton J. Wilson</p><a href="#main-content">Back to top <span aria-hidden="true">↑</span></a></footer>
+</body>
+</html>
